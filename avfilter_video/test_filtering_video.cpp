@@ -184,12 +184,14 @@ static void display_frame(const AVFrame *frame, AVRational time_base)
 	uint8_t *p0, *p;
 	int64_t delay;
 
+	AVRational timeBaseRational = {1, AV_TIME_BASE};
+
 	if (frame->pts != AV_NOPTS_VALUE) {
 		if (last_pts != AV_NOPTS_VALUE) {
 			/* sleep roughly the right amount of time;
 			* usleep is in microseconds, just like AV_TIME_BASE. */
 			delay = av_rescale_q(frame->pts - last_pts,
-				time_base, AV_TIME_BASE_Q);
+				time_base, timeBaseRational);
 			if (delay > 0 && delay < 1000000)
 				std::this_thread::sleep_for(std::chrono::microseconds(delay));//usleep(delay);
 		}
@@ -288,7 +290,10 @@ end:
 	av_frame_free(&filt_frame);
 
 	if (ret < 0 && ret != AVERROR_EOF) {
-		fprintf(stderr, "Error occurred: %s\n", av_err2str(ret));
+		char errBuf[512];
+		memset(errBuf, 0, 512);
+		av_strerror(ret, errBuf, 512);
+		fprintf(stderr, "Error occurred: %s\n", errBuf);
 		exit(1);
 	}
 

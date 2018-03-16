@@ -148,6 +148,12 @@ int main(int argc, char* argv)
 		return -1;
 	}
 
+	char *graph_str = avfilter_graph_dump(filter_graph, NULL);
+	FILE* graphFile = NULL;
+	fopen_s(&graphFile, "graphFile.txt", "w");
+	fprintf(graphFile, "%s", graph_str);
+	av_free(graph_str);
+
 	AVFrame *frame_in = av_frame_alloc();
 	unsigned char *frame_buffer_in = (unsigned char *)av_malloc(av_image_get_buffer_size(AV_PIX_FMT_YUV420P, in_width, in_height, 1));
 	av_image_fill_arrays(frame_in->data, frame_in->linesize, frame_buffer_in,

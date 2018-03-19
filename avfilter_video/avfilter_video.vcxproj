@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="test_split_crop_vfilter.cpp" />
+    <ClCompile Include="test_combine_videos.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{88847E8A-F0B8-4CE0-BE91-5A7A7E158887}</ProjectGuid>

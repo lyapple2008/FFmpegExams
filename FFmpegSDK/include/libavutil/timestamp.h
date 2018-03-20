@@ -73,7 +73,7 @@ static inline char *av_ts_make_time_string(char *buf, int64_t ts, AVRational *tb
  * Convenience macro, the return value should be used only directly in
  * function arguments but never stand-alone.
  */
-char av_ts_buf[AV_TS_MAX_STRING_SIZE] = { 0 };
-#define av_ts2timestr(ts, tb) av_ts_make_time_string(av_ts_buf, ts, tb)
+char av_ts_str[AV_TS_MAX_STRING_SIZE] = { 0 };
+#define av_ts2timestr(ts, tb) av_ts_make_time_string(av_ts_str, ts, tb)
 
 #endif /* AVUTIL_TIMESTAMP_H */

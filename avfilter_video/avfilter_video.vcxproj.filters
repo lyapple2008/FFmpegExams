@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="test_decode_filter_encode.cpp">
+    <ClCompile Include="test_combine_videos.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

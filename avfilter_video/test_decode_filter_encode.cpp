@@ -15,7 +15,7 @@ int get_format_from_sample_fmt(const char **fmt,
 
 int main(int argc, char* argv[])
 {
-	int ret = 0, got_frame;
+	int ret = 0;
 	const char *src_filename = "Wildlife.mp4";
 	const char *video_dst_filename = "out_video.yuv";
 	const char *audio_dst_filename = "out_audio.raw";
@@ -118,8 +118,6 @@ int main(int argc, char* argv[])
 
 	/* read frames from the file */
 	while (av_read_frame(fmt_ctx, &pkt) >= 0) {
-		int decoded = pkt.size;
-		got_frame = 0;
 		if (pkt.stream_index == video_stream_idx) {
 			//ret = avcodec_decode_video2(video_dec_ctx, frame, &got_frame, &pkt);
 			ret = avcodec_send_packet(video_dec_ctx, &pkt);
@@ -134,7 +132,7 @@ int main(int argc, char* argv[])
 				av_log(NULL, AV_LOG_ERROR, "Error while receiving video frame from the decoder\n");
 				goto end;
 			}
-			//if (got_frame) {
+			if (ret >= 0) {
 				if (frame->width != width || frame->height != height ||
 					frame->format != pix_fmt) {
 					fprintf(stderr, "Error: Width, height and pixel format have to be "
@@ -160,7 +158,7 @@ int main(int argc, char* argv[])
 
 				/* write to rawvideo file */
 				fwrite(video_dst_data[0], 1, video_dst_bufsize, video_dst_file);
-			//}
+			}
 		} else if (pkt.stream_index == audio_stream_idx) {
 			//ret = avcodec_decode_audio4(audio_dec_ctx, frame, &got_frame, &pkt);
 			ret = avcodec_send_packet(audio_dec_ctx, &pkt);
@@ -168,36 +166,37 @@ int main(int argc, char* argv[])
 				fprintf(stderr, "Error decoding audio frame (%s)\n", av_err2str(ret));
 				return ret;
 			}
-			ret = avcodec_receive_frame(audio_dec_ctx, frame);
-			if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-				continue;
-			} else if (ret < 0) {
-				av_log(NULL, AV_LOG_ERROR, "Error while receiving audio frame from the decoder\n");
-				goto end;
-			}
+			while (ret >= 0) {
+				ret = avcodec_receive_frame(audio_dec_ctx, frame);
+				if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+					break;
+				} else if (ret < 0) {
+					av_log(NULL, AV_LOG_ERROR, "Error while receiving audio frame from the decoder\n");
+					goto end;
+				}
 
-			int data_size = av_get_bytes_per_sample(audio_dec_ctx->sample_fmt);
-			if (data_size < 0) {
-				printf("data_size error\n");
-				return -1;
-			}
-			for (int i = 0; i < frame->nb_samples; i++) {
-				for (int ch = 0; ch < frame->channels; ch++) {
-					fwrite(frame->data[ch] + data_size*i, 1, data_size, audio_dst_file);
+				if (ret >= 0) {
+					int data_size = av_get_bytes_per_sample(audio_dec_ctx->sample_fmt);
+					if (data_size < 0) {
+						printf("data_size error\n");
+						return -1;
+					}
+					for (int i = 0; i < frame->nb_samples; i++) {
+						for (int ch = 0; ch < frame->channels; ch++) {
+							fwrite(frame->data[ch] + data_size*i, 1, data_size, audio_dst_file);
+						}
+					}
+
+					//size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample((AVSampleFormat)(frame->format));
+					printf("audio_frame%s n:%d nb_samples:%d pts:%s\n",
+						0 ? "(cached)" : "",
+						audio_frame_count++, frame->nb_samples,
+						av_ts2timestr(frame->pts, &(audio_dec_ctx->time_base)));
 				}
 			}
-
-			//size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample((AVSampleFormat)(frame->format));
-			printf("audio_frame%s n:%d nb_samples:%d pts:%s\n",
-				0 ? "(cached)" : "",
-				audio_frame_count++, frame->nb_samples,
-				av_ts2timestr(frame->pts, &(audio_dec_ctx->time_base)));
-
-			//fwrite(frame->extended_data[0], 1, unpadded_linesize, audio_dst_file);
 		}
-						
-		if (ret < 0)
-			break;
+
+		av_packet_unref(&pkt);
 	}
 
 	/* flush cached frames */
@@ -266,8 +265,7 @@ int open_codec_context(int *stream_idx, AVCodecContext **dec_ctx,
 		fprintf(stderr, "Could not find %s stream in input file\n",
 				av_get_media_type_string(type));
 		return ret;
-	}
-	else {
+	} else {
 		stream_index = ret;
 		st = fmt_ctx->streams[stream_index];
 

@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="filtering_audio.c">
+    <ClCompile Include="test_loudnorm.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
